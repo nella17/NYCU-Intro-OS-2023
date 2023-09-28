@@ -1,8 +1,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <signal.h>
 #include <unistd.h>
 #include <sys/wait.h>
+
+void cleanup(int /*s*/) {
+	while (waitpid(-1, NULL, WNOHANG) > 0);
+}
 
 char** split(char* line, const char* delim, size_t* pcnt) {
     size_t cnt = 1;
@@ -41,6 +46,8 @@ pid_t exec(char* line) {
 }
 
 int main(void) {
+    signal(SIGCHLD, cleanup);
+
     char *line = NULL;
     size_t len = 0;
     ssize_t nread;
