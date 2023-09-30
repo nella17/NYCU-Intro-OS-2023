@@ -36,18 +36,17 @@ char** split(char* line, const char* delim) {
 
 pid_t exec(char* line, int fd_in, int fd_out) {
     pid_t pid = fork();
-    if (pid < 0) {
-        perror("fork");
-        exit(EXIT_FAILURE);
-    }
+    if (pid < 0)
+        perror("fork"), exit(EXIT_FAILURE);
+
     if (pid == 0) {
         char** argv = split(line, " ");
         if (argv[0] == NULL)
             exit(EXIT_SUCCESS);
         if (dup2(fd_in, STDIN_FILENO) < 0)
-            perror("dup2(stdin)");
+            perror("dup2(stdin)"), exit(EXIT_FAILURE);
         if (dup2(fd_out, STDOUT_FILENO) < 0)
-            perror("dup2(stdout)");
+            perror("dup2(stdout)"), exit(EXIT_FAILURE);
         execvp(argv[0], argv);
         perror("execve");
         exit(EXIT_FAILURE);
@@ -86,13 +85,15 @@ int main(void) {
         int pipefd[cnt-1][2];
         int fds[cnt][2];
         fds[0][0] = dup(STDIN_FILENO);
+        if (fds[0][0] < 0) 
+            perror("dup"), exit(EXIT_FAILURE);
         fds[cnt-1][1] = dup(STDOUT_FILENO);
+        if (fds[cnt-1][1] < 0) 
+            perror("dup"), exit(EXIT_FAILURE);
 
         for (size_t i = 0; i < cnt-1; i++) {
-            if (pipe(pipefd[i]) < 0) {
-                perror("pipe");
-                exit(EXIT_FAILURE);
-            }
+            if (pipe(pipefd[i]) < 0)
+                perror("pipe"), exit(EXIT_FAILURE);
             fds[i][1] = pipefd[i][1];
             fds[i+1][0] = pipefd[i][0];
         }
