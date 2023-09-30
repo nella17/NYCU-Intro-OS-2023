@@ -104,6 +104,7 @@ int main(void) {
             for (int j = 0; j < 2; j++)
                 if (close(fds[i][j]) < 0)
                     perror("close");
+
         if (!background)
             waitpid(pid[cnt-1], NULL, 0);
     }
