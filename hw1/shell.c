@@ -10,14 +10,20 @@ void cleanup(int /*s*/) {
 	while (waitpid(-1, NULL, WNOHANG) > 0);
 }
 
-char** split(char* line, const char* delim, size_t* pcnt) {
+size_t arylen(char** ptr) {
+    size_t cnt = 0;
+    while (ptr[cnt] != NULL)
+        cnt++;
+    return cnt;
+}
+
+char** split(char* line, const char* delim) {
     size_t cnt = 1;
     for (size_t i = 0, n = strlen(line); i < n; i++)
         if (strchr(delim, line[i]) != NULL)
             cnt++;
-    *pcnt = cnt;
 
-    char **ary = malloc(sizeof(char*) * cnt);
+    char **ary = calloc(cnt+1, sizeof(char*));
     char *s = line, *saved_ptr;
     for (int i = 0; ; s = NULL) {
         char* token = strtok_r(s, delim, &saved_ptr);
@@ -35,9 +41,8 @@ pid_t exec(char* line, int fd_in, int fd_out) {
         exit(EXIT_FAILURE);
     }
     if (pid == 0) {
-        size_t cnt;
-        char** argv = split(line, " ", &cnt);
-        if (cnt <= 0)
+        char** argv = split(line, " ");
+        if (argv[0] == NULL)
             exit(EXIT_SUCCESS);
         if (dup2(fd_in, STDIN_FILENO) < 0)
             perror("dup2(stdin)");
@@ -75,8 +80,8 @@ int main(void) {
 
         if (!nread) continue;
 
-        size_t cnt;
-        char** cmds = split(line, "|", &cnt);
+        char** cmds = split(line, "|");
+        size_t cnt = arylen(cmds);
 
         int pipefd[cnt-1][2];
         int fds[cnt][2];
