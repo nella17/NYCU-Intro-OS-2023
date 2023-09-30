@@ -1,7 +1,7 @@
 CC		?= gcc
 TARGET	?= ./shell
 SOURCE 	:= shell.c
-CFLAGS	:= -Wall -Wextra -Wshadow -Wconversion
+CFLAGS	:= -Wall -Wextra -Wshadow -Wconversion -fsanitize=leak -fsanitize=address -fsanitize=undefined
 
 .PHONY: all
 all: build run

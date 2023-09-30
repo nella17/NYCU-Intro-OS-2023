@@ -110,7 +110,7 @@ int main(void) {
         char** cmds = split(line, "|");
         size_t cnt = arylen(cmds);
 
-        int pipefd[cnt-1][2];
+        int pipefd[cnt][2];
         int fds[cnt][2];
         fds[0][0] = dup(STDIN_FILENO);
         if (fds[0][0] < 0) 
@@ -141,7 +141,11 @@ int main(void) {
 
         if (!background)
             waitpid(pid[cnt-1], NULL, 0);
+
+        free(cmds);
     }
+
+    free(line);
 
     return 0;
 }
