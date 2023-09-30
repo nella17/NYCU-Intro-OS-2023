@@ -79,28 +79,30 @@ int main(void) {
         char** cmds = split(line, "|", &cnt);
 
         int pipefd[cnt-1][2];
-        int fd_in[cnt], fd_out[cnt];
-        fd_in[0] = STDIN_FILENO;
-        fd_out[cnt-1] = STDOUT_FILENO;
+        int fds[cnt][2];
+        fds[0][0] = dup(STDIN_FILENO);
+        fds[cnt-1][1] = dup(STDOUT_FILENO);
 
         for (size_t i = 0; i < cnt-1; i++) {
             if (pipe(pipefd[i]) < 0) {
                 perror("pipe");
                 exit(EXIT_FAILURE);
             }
-            for (int j = 0; j < 2; j++)
-                if (fcntl(pipefd[i][j], F_SETFD, FD_CLOEXEC) < 0)
-                    perror("fcntl");
-            fd_out[i] = pipefd[i][1];
-            fd_in[i+1] = pipefd[i][0];
+            fds[i][1] = pipefd[i][1];
+            fds[i+1][0] = pipefd[i][0];
         }
+
+        for (size_t i = 0; i < cnt; i++)
+            for (int j = 0; j < 2; j++)
+                if (fcntl(fds[i][j], F_SETFD, FD_CLOEXEC) < 0)
+                    perror("fcntl");
 
         pid_t pid[cnt];
         for (size_t i = 0; i < cnt; i++)
-            pid[i] = exec(cmds[i], fd_in[i], fd_out[i]);
-        for (size_t i = 0; i < cnt-1; i++)
+            pid[i] = exec(cmds[i], fds[i][0], fds[i][1]);
+        for (size_t i = 0; i < cnt; i++)
             for (int j = 0; j < 2; j++)
-                if (close(pipefd[i][j]) < 0)
+                if (close(fds[i][j]) < 0)
                     perror("close");
         if (!background)
             waitpid(pid[cnt-1], NULL, 0);
