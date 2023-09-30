@@ -34,6 +34,18 @@ char** split(char* line, const char* delim) {
     return ary;
 }
 
+char* popargv(char** argv, const char* s) {
+    int i = 0;
+    while (argv[i] != NULL && strcmp(argv[i], s))
+        i++;
+    if (argv[i] == NULL) return NULL;
+    char* result = argv[i+1];
+    do {
+        argv[i] = argv[i+2];
+    } while (argv[i++] != NULL);
+    return result;
+}
+
 pid_t exec(char* line, int fd_in, int fd_out) {
     pid_t pid = fork();
     if (pid < 0)
@@ -41,8 +53,24 @@ pid_t exec(char* line, int fd_in, int fd_out) {
 
     if (pid == 0) {
         char** argv = split(line, " ");
+        char* infile = popargv(argv, "<");
+        char* outfile = popargv(argv, ">");
         if (argv[0] == NULL)
             exit(EXIT_SUCCESS);
+        if (infile != NULL) {
+            fd_in = open(infile, O_RDONLY);
+            if (fd_in < 0)
+                perror("open"), exit(EXIT_FAILURE);
+            if (fcntl(fd_in, F_SETFD, FD_CLOEXEC) < 0)
+                perror("fcntl"), exit(EXIT_FAILURE);
+        }
+        if (outfile != NULL) {
+            fd_out = creat(outfile, 0755);
+            if (fd_out < 0)
+                perror("creat"), exit(EXIT_FAILURE);
+            if (fcntl(fd_out, F_SETFD, FD_CLOEXEC) < 0)
+                perror("fcntl"), exit(EXIT_FAILURE);
+        }
         if (dup2(fd_in, STDIN_FILENO) < 0)
             perror("dup2(stdin)"), exit(EXIT_FAILURE);
         if (dup2(fd_out, STDOUT_FILENO) < 0)
