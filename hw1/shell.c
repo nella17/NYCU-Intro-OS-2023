@@ -140,7 +140,8 @@ int main(void) {
                     perror("close");
 
         if (!background)
-            waitpid(pid[cnt-1], NULL, 0);
+            for (size_t i = 0; i < cnt; i++)
+                waitpid(pid[i], NULL, 0);
 
         free(cmds);
     }
