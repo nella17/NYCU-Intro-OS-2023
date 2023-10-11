@@ -1,14 +1,16 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <unistd.h>
 #include <sys/time.h>
 #include <sys/shm.h>
+#include <sys/wait.h>
 
 double gettime() {
     struct timeval time;
     if (gettimeofday(&time, 0) < 0)
         perror("gettimeofday"), exit(EXIT_FAILURE);
-    return time.tv_sec + time.tv_usec / 1e6;
+    return (double)time.tv_sec + (double)time.tv_usec / 1e6;
 }
 
 uint32_t multiply_matrix(void* ptr, void* shmptr, uint32_t n, size_t m) {
