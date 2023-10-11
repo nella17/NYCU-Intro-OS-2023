@@ -25,31 +25,39 @@ uint32_t multiply_matrix(void* ptr, void* shmptr, uint32_t n, size_t m) {
         }
 
     pid_t pids[m];
-    size_t block = (n-1) / m + 1;
+    size_t idx[m+1];
+    size_t block = n / m, remain = n - block * m;
+    idx[0] = 0;
+    for (size_t id = 0; id < m; id++)
+        idx[id+1] = idx[id] + block + (id < remain);
 
     for (size_t id = 1; id < m; id++) {
-        pid_t pid = fork();
+        pid_t pid = pids[id] = fork();
         if (pid < 0)
             perror("fork"), exit(EXIT_FAILURE);
         if (pid == 0) {
-            for (size_t i = block * (id-1); i < block * id; i++) {
+            for (size_t i = idx[id-1]; i < idx[id]; i++) {
                 for (size_t k = 0; k < n; k++)
                     for (size_t j = 0; j < n; j++)
                         C[i][j] += A[i][k] * B[k][j];
             }
             exit(EXIT_SUCCESS);
         }
-        pids[id] = pid;
     }
 
-    for (size_t i = block * (m-1); i < n; i++)
+    for (size_t i = idx[m-1]; i < idx[m]; i++)
         for (size_t k = 0; k < n; k++)
             for (size_t j = 0; j < n; j++)
                 C[i][j] += A[i][k] * B[k][j];
 
-    for (size_t id = 1; id < m; id++)
-        if (waitpid(pids[id], NULL, 0) < 0)
+    for (size_t id = 1; id < m; id++) {
+        pid_t pid = pids[id];
+        int wstatus;
+        if (waitpid(pid, &wstatus, 0) < 0)
             perror("waitpid"), exit(EXIT_FAILURE);
+        if (!WIFEXITED(wstatus) || WEXITSTATUS(wstatus) != 0)
+            printf("child %d exit with status %d\n", pid, wstatus), exit(EXIT_FAILURE);
+    }
 
     uint32_t checksum = 0;
     for (uint32_t i = 0; i < n; i++)
