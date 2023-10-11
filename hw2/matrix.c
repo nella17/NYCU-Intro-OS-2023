@@ -79,9 +79,7 @@ int main(void) {
 
     void* ptr = calloc(n * n, sizeof(uint32_t));
 
-    size_t pagesize = (size_t)sysconf(_SC_PAGESIZE);
     size_t size = n * n * sizeof(uint32_t);
-    size = ((size - 1) / pagesize + 1) * pagesize;
     int shmid = shmget(IPC_PRIVATE, size, IPC_CREAT | 0777);
     if (shmid < 0)
         perror("shmget"), exit(EXIT_FAILURE);
