@@ -1,7 +1,10 @@
 CC		?= gcc
-TARGET	?= ./shell
+TARGET	?= ./shell.exe
 SOURCE 	:= shell.c
-CFLAGS	:= -Wall -Wextra -Wshadow -Wconversion -fsanitize=leak -fsanitize=address -fsanitize=undefined
+CFLAGS	+= -Wall -Wextra -Wshadow -Wconversion -g
+ifneq ($(shell uname),Darwin)
+CFLAGS 	+= -fsanitize=leak -fsanitize=address -fsanitize=undefined
+endif
 
 .PHONY: all
 all: build run

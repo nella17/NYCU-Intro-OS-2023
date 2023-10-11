@@ -1,5 +1,5 @@
 CC		?= gcc
-TARGET	?= ./matrix
+TARGET	?= ./matrix.exe
 SOURCE 	:= matrix.c
 CFLAGS	+= -Wall -Wextra -Wshadow -Wconversion -g
 ifneq ($(shell uname),Darwin)
