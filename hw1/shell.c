@@ -6,7 +6,7 @@
 #include <fcntl.h>
 #include <sys/wait.h>
 
-void cleanup(int /*s*/) {
+void cleanup(int s) {
 	while (waitpid(-1, NULL, WNOHANG) > 0);
 }
 
