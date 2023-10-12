@@ -87,7 +87,7 @@ int main(void) {
 
     size_t START = 1, END = 16;
     for (size_t m = START; m <= END; m++) {
-        printf("Multiplying matrices using %lu process\n", m);
+        printf("Multiplying matrices using %lu process%s\n", m, &"es"[(m == START) * 2]);
         double start = gettime();
         uint32_t checksum = multiply_matrix(ptr, shmptr, n, m);
         double end = gettime();
