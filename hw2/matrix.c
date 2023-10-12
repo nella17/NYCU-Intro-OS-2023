@@ -13,6 +13,17 @@ double gettime() {
     return (double)time.tv_sec + (double)time.tv_usec / 1e6;
 }
 
+void calc(uint32_t n, uint32_t (*A)[n], uint32_t (*B)[n], uint32_t (*C)[n], size_t L, size_t R) {
+    for (size_t i = L; i < R; i++) {
+        for (size_t j = 0; j < n; j++) {
+            uint32_t v = 0;
+            for (size_t k = 0; k < n; k++)
+                v += A[i][k] * B[k][j];
+            C[i][j] = v;
+        }
+    }
+}
+
 uint32_t multiply_matrix(void* ptr, void* shmptr, uint32_t n, size_t m) {
     uint32_t (*A)[n] = ptr;
     uint32_t (*B)[n] = ptr;
@@ -34,25 +45,12 @@ uint32_t multiply_matrix(void* ptr, void* shmptr, uint32_t n, size_t m) {
         if (pid < 0)
             perror("fork"), exit(EXIT_FAILURE);
         if (pid == 0) {
-            for (size_t i = idx[id-1]; i < idx[id]; i++) {
-                for (size_t j = 0; j < n; j++) {
-                    uint32_t v = 0;
-                    for (size_t k = 0; k < n; k++)
-                        v += A[i][k] * B[k][j];
-                    C[i][j] = v;
-                }
-            }
+            calc(n, A, B, C, idx[id-1], idx[id]);
             exit(EXIT_SUCCESS);
         }
     }
 
-    for (size_t i = idx[m-1]; i < idx[m]; i++)
-        for (size_t j = 0; j < n; j++) {
-            uint32_t v = 0;
-            for (size_t k = 0; k < n; k++)
-                v += A[i][k] * B[k][j];
-            C[i][j] = v;
-        }
+    calc(n, A, B, C, idx[m-1], idx[m]);
 
     for (size_t id = 1; id < m; id++) {
         pid_t pid = pids[id];
