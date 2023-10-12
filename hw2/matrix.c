@@ -33,7 +33,6 @@ uint32_t multiply_matrix(void* ptr, void* shmptr, uint32_t n, size_t m) {
         for (uint32_t j = 0; j < n; j++)
             A[i][j] = (uint32_t)(i * n + j);
 
-    pid_t pids[m];
     size_t idx[m+1];
     size_t block = n / m, remain = n - block * m;
     idx[0] = 0;
@@ -41,7 +40,7 @@ uint32_t multiply_matrix(void* ptr, void* shmptr, uint32_t n, size_t m) {
         idx[id+1] = idx[id] + block + (id < remain);
 
     for (size_t id = 1; id < m; id++) {
-        pid_t pid = pids[id] = fork();
+        pid_t pid = fork();
         if (pid < 0)
             perror("fork"), exit(EXIT_FAILURE);
         if (pid == 0) {
@@ -53,10 +52,10 @@ uint32_t multiply_matrix(void* ptr, void* shmptr, uint32_t n, size_t m) {
     calc(n, A, B, C, idx[m-1], idx[m]);
 
     for (size_t id = 1; id < m; id++) {
-        pid_t pid = pids[id];
         int wstatus;
-        if (waitpid(pid, &wstatus, 0) < 0)
-            perror("waitpid"), exit(EXIT_FAILURE);
+        pid_t pid;
+        if ((pid = wait(&wstatus)) < 0)
+            perror("wait"), exit(EXIT_FAILURE);
         if (!WIFEXITED(wstatus) || WEXITSTATUS(wstatus) != 0)
             printf("child %d exit with status %d\n", pid, wstatus), exit(EXIT_FAILURE);
     }
