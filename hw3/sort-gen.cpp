@@ -18,13 +18,18 @@ int main(int argc, char* argv[]) {
 
     printf("Generate %lu numbers to %s / %s\n", n, infilename, outfilename);
 
-    std::random_device rd;
-    std::uniform_int_distribution<uint32_t> dist(
-        std::numeric_limits<uint32_t>::min(),
-        std::numeric_limits<uint32_t>::max()
-    );
     std::vector<uint32_t> v(n);
-    for (auto &x: v) x = dist(rd);
+    std::random_device rd;
+    if (0) {
+        std::uniform_int_distribution<uint32_t> dist(
+            std::numeric_limits<uint32_t>::min(),
+            std::numeric_limits<uint32_t>::max()
+        );
+        for (auto &x: v) x = dist(rd);
+    } else {
+        std::iota(v.begin(), v.end(), 1);
+        std::shuffle(v.begin(), v.end(), rd);
+    }
 
     FILE* infile = fopen(infilename, "w");
     fprintf(infile, "%lu \n", n);
