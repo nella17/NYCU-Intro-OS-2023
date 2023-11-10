@@ -21,7 +21,7 @@ int main(int argc, char* argv[]) {
 
     std::vector<element_t> v(n);
     std::random_device rd;
-    if (0) {
+    if (1) {
         std::uniform_int_distribution<element_t> dist(
             std::numeric_limits<element_t>::min(),
             std::numeric_limits<element_t>::max()
@@ -35,14 +35,14 @@ int main(int argc, char* argv[]) {
     FILE* infile = fopen(infilename, "w");
     fprintf(infile, "%lu \n", n);
     for (size_t i = 0; i < n; i++)
-        fprintf(infile, "%u%c", v[i], " \n"[i+1==n]);
+        fprintf(infile, "%d%c", v[i], " \n"[i+1==n]);
     fclose(infile);
 
     std::sort(v.begin(), v.end());
 
     FILE* outfile = fopen(outfilename, "w");
     for (size_t i = 0; i < n; i++)
-        fprintf(outfile, "%u%c", v[i], " \n"[i+1==n]);
+        fprintf(outfile, "%d%c", v[i], " \n"[i+1==n]);
     fclose(outfile);
 
     return EXIT_SUCCESS;

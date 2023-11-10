@@ -165,7 +165,7 @@ void* worker(void* ptr) {
 #ifdef DEBUG
         printf(" task %lu\n ", item->id);
         for (element_t* it = item->begin; it < item->end; it++)
-            printf("%u%c", *it, " \n"[it+1==item->end]);
+            printf("%d%c", *it, " \n"[it+1==item->end]);
 #endif
         switch (item->type) {
         case SORT:
@@ -186,7 +186,7 @@ void* worker(void* ptr) {
 #ifdef DEBUG
         printf(" ");
         for (element_t* it = item->begin; it < item->end; it++)
-            printf("%u%c", *it, " \n"[it+1==item->end]);
+            printf("%d%c", *it, " \n"[it+1==item->end]);
 #endif
         queue_push(&info->complete, item);
     }
@@ -278,7 +278,7 @@ int main(void) {
     if (initary == NULL)
         perror("malloc"), exit(EXIT_FAILURE);
     for (size_t i = 0; i < n; i++)
-        fscanf(infile, "%u", initary+i);
+        fscanf(infile, "%d", initary+i);
     if (fclose(infile) < 0)
         perror("fclose(in)"), exit(EXIT_FAILURE);
     element_t *workary = malloc(size);
@@ -299,7 +299,7 @@ int main(void) {
         if (outfile == NULL)
             perror("fopen(out)"), exit(EXIT_FAILURE);
         for (size_t i = 0; i < n; i++)
-            fprintf(outfile, "%u%c", workary[i], " \n"[i+1==n]);
+            fprintf(outfile, "%d%c", workary[i], " \n"[i+1==n]);
         if (fclose(outfile) < 0)
             perror("fclose(out)"), exit(EXIT_FAILURE);
         free(outfilename);
