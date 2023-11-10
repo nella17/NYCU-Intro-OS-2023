@@ -1,7 +1,6 @@
 #define _GNU_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdint.h>
 #include <string.h>
 #include <unistd.h>
 #include <sys/time.h>
@@ -20,6 +19,7 @@ const size_t START = 1, END = 1;
 const size_t START = 1, END = 8;
 #endif
 const size_t K = 8;
+typedef int element_t;
 
 double getsecond() {
     struct timeval time;
@@ -45,7 +45,7 @@ struct item {
     item_type type;
     item_t *prev, *next;
     size_t id;
-    uint32_t *begin, *mid, *end;
+    element_t *begin, *mid, *end;
 };
 item_t* item_new(item_type type) {
     item_t* it = malloc(sizeof(item_t));
@@ -125,10 +125,10 @@ void info_destroy(info_t* info) {
     queue_destroy(&info->complete);
 }
 
-void bubble_sort(uint32_t* begin, uint32_t* end) {
-    for (uint32_t* it = begin; it+1 < end; it++) {
-        for (uint32_t* jt = end-1; it < jt; jt--) {
-            uint32_t l = *(jt-1), r = *jt;
+void bubble_sort(element_t* begin, element_t* end) {
+    for (element_t* it = begin; it+1 < end; it++) {
+        for (element_t* jt = end-1; it < jt; jt--) {
+            element_t l = *(jt-1), r = *jt;
             if (l > r) {
                 *(jt-1) = r;
                 *jt = l;
@@ -137,13 +137,13 @@ void bubble_sort(uint32_t* begin, uint32_t* end) {
     }
 }
 
-void merge(uint32_t* begin, uint32_t* mid, uint32_t* end) {
+void merge(element_t* begin, element_t* mid, element_t* end) {
     size_t n = (size_t)(end - begin);
-    uint32_t ary[n];
+    element_t ary[n];
     size_t i = 0;
-    uint32_t *it = begin, *jt = mid;
+    element_t *it = begin, *jt = mid;
     while (it != mid && jt != end) {
-        uint32_t l = *it, r = *jt;
+        element_t l = *it, r = *jt;
         if (l <= r) {
             ary[i++] = l;
             it++;
@@ -154,7 +154,7 @@ void merge(uint32_t* begin, uint32_t* mid, uint32_t* end) {
     }
     while (it != mid) ary[i++] = *(it++);
     while (jt != end) ary[i++] = *(jt++);
-    memcpy(begin, ary, n * sizeof(uint32_t));
+    memcpy(begin, ary, n * sizeof(element_t));
 }
 
 void* worker(void* ptr) {
@@ -164,7 +164,7 @@ void* worker(void* ptr) {
         item_t* item = queue_pop(&info->task);
 #ifdef DEBUG
         printf(" task %lu\n ", item->id);
-        for (uint32_t* it = item->begin; it < item->end; it++)
+        for (element_t* it = item->begin; it < item->end; it++)
             printf("%u%c", *it, " \n"[it+1==item->end]);
 #endif
         switch (item->type) {
@@ -185,7 +185,7 @@ void* worker(void* ptr) {
         }
 #ifdef DEBUG
         printf(" ");
-        for (uint32_t* it = item->begin; it < item->end; it++)
+        for (element_t* it = item->begin; it < item->end; it++)
             printf("%u%c", *it, " \n"[it+1==item->end]);
 #endif
         queue_push(&info->complete, item);
@@ -194,7 +194,7 @@ void* worker(void* ptr) {
     return ptr;
 }
 
-void process(size_t cnt, size_t n, uint32_t *ary) {
+void process(size_t cnt, size_t n, element_t *ary) {
     info_t* info = malloc(sizeof(info_t));
     info_init(info);
 
@@ -273,15 +273,15 @@ int main(void) {
         perror("fopen(in)"), exit(EXIT_FAILURE);
     size_t n;
     fscanf(infile, "%lu", &n);
-    size_t size = n * sizeof(uint32_t);
-    uint32_t *initary = malloc(size);
+    size_t size = n * sizeof(element_t);
+    element_t *initary = malloc(size);
     if (initary == NULL)
         perror("malloc"), exit(EXIT_FAILURE);
     for (size_t i = 0; i < n; i++)
         fscanf(infile, "%u", initary+i);
     if (fclose(infile) < 0)
         perror("fclose(in)"), exit(EXIT_FAILURE);
-    uint32_t *workary = malloc(size);
+    element_t *workary = malloc(size);
     if (workary == NULL)
         perror("malloc"), exit(EXIT_FAILURE);
 

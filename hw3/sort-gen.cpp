@@ -6,6 +6,7 @@
 
 const char* infilename  = "input.txt";
 const char* outfilename = "output.txt";
+typedef int element_t;
 
 int main(int argc, char* argv[]) {
     size_t n = 1e6;
@@ -18,12 +19,12 @@ int main(int argc, char* argv[]) {
 
     printf("Generate %lu numbers to %s / %s\n", n, infilename, outfilename);
 
-    std::vector<uint32_t> v(n);
+    std::vector<element_t> v(n);
     std::random_device rd;
     if (0) {
-        std::uniform_int_distribution<uint32_t> dist(
-            std::numeric_limits<uint32_t>::min(),
-            std::numeric_limits<uint32_t>::max()
+        std::uniform_int_distribution<element_t> dist(
+            std::numeric_limits<element_t>::min(),
+            std::numeric_limits<element_t>::max()
         );
         for (auto &x: v) x = dist(rd);
     } else {
