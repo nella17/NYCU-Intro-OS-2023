@@ -126,8 +126,8 @@ void info_destroy(info_t* info) {
 }
 
 void bubble_sort(element_t* begin, element_t* end) {
-    for (element_t* it = begin; it+1 < end; it++) {
-        for (element_t* jt = end-1; it < jt; jt--) {
+    for (element_t* it = begin+1; it < end; it++) {
+        for (element_t* jt = it; begin < jt; jt--) {
             element_t l = *(jt-1), r = *jt;
             if (l > r) {
                 *(jt-1) = r;
@@ -140,20 +140,22 @@ void bubble_sort(element_t* begin, element_t* end) {
 void merge(element_t* begin, element_t* mid, element_t* end) {
     size_t n = (size_t)(end - begin);
     element_t ary[n];
-    size_t i = 0;
+    element_t *kt = ary;
     element_t *it = begin, *jt = mid;
     while (it != mid && jt != end) {
         element_t l = *it, r = *jt;
         if (l <= r) {
-            ary[i++] = l;
+            *(kt++) = l;
             it++;
         } else {
-            ary[i++] = r;
+            *(kt++) = r;
             jt++;
         }
     }
-    while (it != mid) ary[i++] = *(it++);
-    while (jt != end) ary[i++] = *(jt++);
+    if (it != mid)
+        memcpy(kt, it, sizeof(element_t) * (size_t)(mid - it));
+    else if (jt != end)
+        memcpy(kt, jt, sizeof(element_t) * (size_t)(end - jt));
     memcpy(begin, ary, n * sizeof(element_t));
 }
 
