@@ -1,6 +1,7 @@
 #!/bin/bash
 set -ex
-make
-for i in {1..8}; do
-  diff output.txt "output_$i.txt"
+while true; do
+  ./sort-gen.exe $(shuf -i 1-1000000 -n 1)
+  ./sort.exe
+  ./verify.sh 2>/dev/null
 done
