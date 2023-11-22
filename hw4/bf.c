@@ -103,7 +103,7 @@ static void _free_block(block_t* ptr) {
     _print_blocks();
 }
 
-void* _malloc(size_t size) {
+void* malloc(size_t size) {
 #ifdef DEBUG
     write(1, buf, sprintf(buf, "malloc(0x%lx)\n", size));
 #endif
@@ -117,24 +117,10 @@ void* _malloc(size_t size) {
     return (char*)_alloc_block(size_align) + HEADER_SIZE;
 }
 
-void _free(void* ptr) {
+void free(void* ptr) {
 #ifdef DEBUG
     write(1, buf, sprintf(buf, "free(%p)\n", ptr));
 #endif
+    if (!ptr) return;
     return _free_block((block_t*)((char*)ptr - HEADER_SIZE));
 }
-
-#ifdef __APPLE__
-#define DYLD_INTERPOSE(_replacement,_replacee) \
-   __attribute__((used)) static struct{ const void* replacement; const void* replacee; } _interpose_##_replacee \
-            __attribute__ ((section ("__DATA,__interpose"))) = { (const void*)(unsigned long)&_replacement, (const void*)(unsigned long)&_replacee };
-#define strong_alias(name, aliasname) DYLD_INTERPOSE(name, aliasname)
-#else
-# define strong_alias(name, aliasname) _strong_alias(name, aliasname)
-# define _strong_alias(name, aliasname) \
-  extern __typeof (name) aliasname __attribute__ ((alias (#name))) \
-    __attribute_copy__ (name);
-#endif
-
-strong_alias(_malloc, malloc)
-strong_alias(_free, free)
