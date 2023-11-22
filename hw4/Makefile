@@ -8,8 +8,12 @@ FF_LIB 	:= ff.so
 BINARY 	:= $(BINDIR)/$(PROG) $(BINDIR)/$(BF_LIB) $(BINDIR)/$(FF_LIB)
 
 CFLAGS	+= -Wall -Wextra -Wshadow -Wconversion -g
-ifneq ($(shell uname),Darwin)
-CFLAGS 	+= -fsanitize=leak -fsanitize=address -fsanitize=undefined
+ifeq ($(shell uname),Darwin)
+LIBFLAG := -dynamiclib 
+LOAD 	:= DYLD_INSERT_LIBRARIES
+else
+LIBFLAG := -shared
+LOAD 	:= LD_PRELOAD
 endif
 
 .PHONY: all
@@ -18,8 +22,8 @@ all: build run
 .PHONY: run
 run: build
 	$(BINDIR)/$(PROG)
-	LD_PRELOAD=$(BINDIR)/$(BF_LIB) $(BINDIR)/$(PROG)
-	LD_PRELOAD=$(BINDIR)/$(FF_LIB) $(BINDIR)/$(PROG)
+	$(LOAD)=$(BINDIR)/$(BF_LIB) $(BINDIR)/$(PROG)
+	$(LOAD)=$(BINDIR)/$(FF_LIB) $(BINDIR)/$(PROG)
 
 .PHONY: build
 build: $(BINARY)
@@ -28,7 +32,7 @@ $(BINDIR)/%.exe: $(SRCDIR)/%.c
 	$(CC) $(CFLAGS) $< -o $@
 
 $(BINDIR)/%.so: $(SRCDIR)/%.c
-	$(CC) $(CFLAGS) -shared $< -o $@
+	$(CC) $(CFLAGS) $(LIBFLAG) $< -o $@
 
 .PHONY: clean
 clean:
