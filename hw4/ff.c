@@ -58,14 +58,11 @@ static void _print_blocks() {
 #endif
 }
 
-static block_t* _best_fit(size_t size) {
-    block_t* best = NULL;
-    for (block_t* it = head; it != NULL; it = it->next) {
-        if (it->free && it->size >= size && (best == NULL || it->size < best->size)) {
-            best = it;
-        }
-    }
-    return best;
+static block_t* _first_fit(size_t size) {
+    for (block_t* it = head; it != NULL; it = it->next)
+        if (it->free && it->size >= size)
+            return it;
+    return NULL;
 }
 
 static void _link_block(block_t* prev, block_t* next) {
@@ -74,7 +71,7 @@ static void _link_block(block_t* prev, block_t* next) {
 }
 
 static block_t* _alloc_block(size_t size) {
-    block_t* it = _best_fit(size);
+    block_t* it = _first_fit(size);
     if (it == NULL) return NULL;
     ssize_t remain = it->size - size - HEADER_SIZE;
     if (remain >= MIN_DATA_SIZE) {
