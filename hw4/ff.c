@@ -1,4 +1,5 @@
 
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stddef.h>
@@ -10,7 +11,7 @@
 #define MIN_DATA_SIZE 32
 
 // #define DEBUG
-static char buf[1024];
+#define BUF_SIZE 1024
 
 typedef struct block block_t;
 struct block {
@@ -21,6 +22,16 @@ struct block {
 
 static void* pool = NULL;
 static block_t* head = NULL;
+
+static void _printf(const char* fmt, ...) {
+    char buf[BUF_SIZE];
+    va_list ap;
+    va_start(ap, fmt);
+    int n = vsnprintf(buf, BUF_SIZE, fmt, ap);
+    va_end(ap);
+    if (n > 0)
+        write(1, buf, (size_t)n);
+}
 
 static void _prealloc() {
     pool = mmap(NULL, PRE_ALLOC_SIZE, PROT_READ | PROT_WRITE, MAP_ANON | MAP_PRIVATE, 0, 0);
@@ -45,16 +56,16 @@ static void _print() {
         if (it->free && (it->size > max_size))
             max_size = it->size;
     }
-    write(1, buf, sprintf(buf, "Max Free Chunk Size = %lu\n", max_size));
+    _printf("Max Free Chunk Size = %lu\n", max_size);
 }
 
 static void _print_blocks() {
 #ifdef DEBUG
-    write(1, buf, sprintf(buf, "head = %p\n", head));
+    _printf("head = %p\n", head);
     for (block_t* it = head; it != NULL; it = it->next) {
-        write(1, buf, sprintf(buf, " it = %p\t%p <--\t-->%p\n  size = %lx\tfree = %d\n", it, it->prev, it->next, it->size, it->free));
+        _printf(" it = %p\t%p <--\t-->%p\n  size = %lx\tfree = %d\n", it, it->prev, it->next, it->size, it->free);
     }
-    write(1, buf, sprintf(buf, "\n"));
+    _printf("\n");
 #endif
 }
 
@@ -73,12 +84,12 @@ static void _link_block(block_t* prev, block_t* next) {
 static block_t* _alloc_block(size_t size) {
     block_t* it = _first_fit(size);
     if (it == NULL) return NULL;
-    ssize_t remain = it->size - size - HEADER_SIZE;
+    ssize_t remain = (ssize_t)(it->size - size - HEADER_SIZE);
     if (remain >= MIN_DATA_SIZE) {
         it->size = size;
         block_t* next = (block_t*)((char*)it + HEADER_SIZE + size);
         next->free = 1;
-        next->size = remain;
+        next->size = (size_t)remain;
         _link_block(next, it->next);
         _link_block(it, next);
     }
@@ -102,7 +113,7 @@ static void _free_block(block_t* ptr) {
 
 void* malloc(size_t size) {
 #ifdef DEBUG
-    write(1, buf, sprintf(buf, "malloc(0x%lx)\n", size));
+    _printf("malloc(0x%lx)\n", size);
 #endif
     if (size == 0) {
         _print();
@@ -116,7 +127,7 @@ void* malloc(size_t size) {
 
 void free(void* ptr) {
 #ifdef DEBUG
-    write(1, buf, sprintf(buf, "free(%p)\n", ptr));
+    _printf("free(%p)\n", ptr);
 #endif
     if (!ptr) return;
     return _free_block((block_t*)((char*)ptr - HEADER_SIZE));
