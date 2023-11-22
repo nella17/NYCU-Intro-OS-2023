@@ -60,7 +60,7 @@ static void _print() {
 }
 
 static void _print_blocks() {
-#ifdef DEBUG
+#if DEBUG >= 2
     _printf("head = %p\n", head);
     for (block_t* it = head; it != NULL; it = it->next) {
         _printf(" it = %p\t%p <--\t-->%p\n  size = %lx\tfree = %d\n", it, it->prev, it->next, it->size, it->free);
