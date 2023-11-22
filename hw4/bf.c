@@ -7,7 +7,10 @@
 #define PRE_ALLOC_SIZE 20000
 #define SIZE_ALIGN 32
 #define HEADER_SIZE 32
-#define MIN_CHUNK_SIZE 64
+#define MIN_DATA_SIZE 32
+
+// #define DEBUG
+static char buf[1024];
 
 typedef struct block block_t;
 struct block {
@@ -37,37 +40,73 @@ static void _dealloc() {
 }
 
 static void _print() {
+    size_t max_size = 0;
+    for (block_t* it = head; it != NULL; it = it->next) {
+        if (it->free && (it->size > max_size))
+            max_size = it->size;
+    }
+    write(1, buf, sprintf(buf, "Max Free Chunk Size = %lu\n", max_size));
+}
+
+static void _print_blocks() {
+#ifdef DEBUG
+    write(1, buf, sprintf(buf, "head = %p\n", head));
+    for (block_t* it = head; it != NULL; it = it->next) {
+        write(1, buf, sprintf(buf, " it = %p\t%p <--\t-->%p\n  size = %lx\tfree = %d\n", it, it->prev, it->next, it->size, it->free));
+    }
+    write(1, buf, sprintf(buf, "\n"));
+#endif
 }
 
 static block_t* _best_fit(size_t size) {
     block_t* best = NULL;
     for (block_t* it = head; it != NULL; it = it->next) {
-        if (it->size >= size && (best == NULL || it->size < best->size)) {
+        if (it->free && it->size >= size && (best == NULL || it->size < best->size)) {
             best = it;
         }
     }
     return best;
 }
 
-static void link_block(block_t* prev, block_t* next) {
-    prev->next = next;
-    next->prev = prev;
+static void _link_block(block_t* prev, block_t* next) {
+    if (prev) prev->next = next;
+    if (next) next->prev = prev;
 }
 
 static block_t* _alloc_block(size_t size) {
     block_t* it = _best_fit(size);
     if (it == NULL) return NULL;
-    if (it->size >= size + MIN_CHUNK_SIZE) {
+    ssize_t remain = it->size - size - HEADER_SIZE;
+    if (remain >= MIN_DATA_SIZE) {
+        it->size = size;
         block_t* next = (block_t*)((char*)it + HEADER_SIZE + size);
+        next->free = 1;
+        next->size = remain;
+        _link_block(next, it->next);
+        _link_block(it, next);
     }
+    it->free = 0;
+    _print_blocks();
     return it;
 }
 
+static void _merge_prev_block(block_t* ptr) {
+    if (!ptr || !ptr->free || !ptr->prev || !ptr->prev->free) return;
+    ptr->prev->size += HEADER_SIZE + ptr->size;
+    _link_block(ptr->prev, ptr->next);
+}
+
 static void _free_block(block_t* ptr) {
-    // TODO
+    ptr->free = 1;
+    _merge_prev_block(ptr->next);
+    _merge_prev_block(ptr);
+    _print_blocks();
 }
 
 void* _malloc(size_t size) {
+#ifdef DEBUG
+    write(1, buf, sprintf(buf, "malloc(0x%lx)\n", size));
+#endif
     if (size == 0) {
         _print();
         _dealloc();
@@ -79,6 +118,9 @@ void* _malloc(size_t size) {
 }
 
 void _free(void* ptr) {
+#ifdef DEBUG
+    write(1, buf, sprintf(buf, "free(%p)\n", ptr));
+#endif
     return _free_block((block_t*)((char*)ptr - HEADER_SIZE));
 }
 
