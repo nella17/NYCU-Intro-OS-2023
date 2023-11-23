@@ -23,14 +23,14 @@ struct block {
 static void* pool = NULL;
 static block_t* head = NULL;
 
-static void _printf(const char* fmt, ...) {
+static void _printf(int fd, const char* fmt, ...) {
     char buf[BUF_SIZE];
     va_list ap;
     va_start(ap, fmt);
     int n = vsnprintf(buf, BUF_SIZE, fmt, ap);
     va_end(ap);
     if (n > 0)
-        write(1, buf, (size_t)n);
+        write(fd, buf, (size_t)n);
 }
 
 static void _prealloc() {
@@ -56,16 +56,16 @@ static void _print() {
         if (it->free && (it->size > max_size))
             max_size = it->size;
     }
-    _printf("Max Free Chunk Size = %lu\n", max_size);
+    _printf(1, "Max Free Chunk Size = %lu\n", max_size);
 }
 
 static void _print_blocks() {
 #if DEBUG >= 2
-    _printf("head = %p\n", head);
+    _printf(2, "head = %p\n", head);
     for (block_t* it = head; it != NULL; it = it->next) {
-        _printf(" it = %p\t%p <--\t-->%p\n  size = %lx\tfree = %d\n", it, it->prev, it->next, it->size, it->free);
+        _printf(2, " it = %p\t%p <--\t-->%p\n  size = %lx\tfree = %d\n", it, it->prev, it->next, it->size, it->free);
     }
-    _printf("\n");
+    _printf(2, "\n");
 #endif
 }
 
@@ -113,7 +113,7 @@ static void _free_block(block_t* ptr) {
 
 void* malloc(size_t size) {
 #ifdef DEBUG
-    _printf("malloc(0x%lx)\n", size);
+    _printf(2, "malloc(0x%lx)\n", size);
 #endif
     if (size == 0) {
         _print();
@@ -127,7 +127,7 @@ void* malloc(size_t size) {
 
 void free(void* ptr) {
 #ifdef DEBUG
-    _printf("free(%p)\n", ptr);
+    _printf(2, "free(%p)\n", ptr);
 #endif
     if (!ptr) return;
     return _free_block((block_t*)((char*)ptr - HEADER_SIZE));
