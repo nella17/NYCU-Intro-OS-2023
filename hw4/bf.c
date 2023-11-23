@@ -34,9 +34,9 @@ static void _printf(int fd, const char* fmt, ...) {
 }
 
 static void _prealloc() {
-    pool = mmap(NULL, PRE_ALLOC_SIZE, PROT_READ | PROT_WRITE, MAP_ANON | MAP_PRIVATE, 0, 0);
+    pool = mmap(NULL, PRE_ALLOC_SIZE, PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, 0, 0);
     if (pool == MAP_FAILED)
-        perror("mmap"), exit(EXIT_FAILURE);
+        _printf(2, "mmap: %m\n"), exit(EXIT_FAILURE);
     head = pool;
     head->size = PRE_ALLOC_SIZE - HEADER_SIZE;
     head->free = 1;
@@ -45,7 +45,7 @@ static void _prealloc() {
 
 static void _dealloc() {
     if (munmap(pool, PRE_ALLOC_SIZE) < 0)
-        perror("munmap"), exit(EXIT_FAILURE);
+        _printf(2, "munmap: %m\n"), exit(EXIT_FAILURE);
     pool = NULL;
     head = NULL;
 }
