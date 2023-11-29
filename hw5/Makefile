@@ -11,14 +11,21 @@ endif
 all: build run
 
 .PHONY: run
-run: build
-	$(TARGET)
+run: build files
+	$(TARGET) zipf.txt
+	$(TARGET) whois.txt
 
 .PHONY: build
 build: $(TARGET)
 
 $(TARGET): $(SOURCE)
 	$(CXX) $(CFLAGS) $^ -o $@
+
+.PHONY: files
+files: zipf.txt whois.txt
+
+%.txt:
+	wget "https://github.com/Sea-n/NCTU-110A-OS/raw/master/Assignment5-page/$@"
 
 .PHONY: clean
 clean:
