@@ -56,6 +56,7 @@ class Policy {
         else
             miss++;
     }
+    virtual ~Policy() = default;
     virtual void _init(int) {}
     virtual bool _access(int) { return false; }
     double fault() {
@@ -66,6 +67,7 @@ class Policy {
 class LFU : public Policy {
   public:
     LFU(): Policy("LFU") {}
+    virtual ~LFU() = default;
     void _init(int size) override {
 
     }
@@ -79,6 +81,7 @@ class LRU : public Policy {
     List<int> list;
     HashTable<int, List<int>::iterator> mp{};
     LRU(): Policy("LRU") {}
+    virtual ~LRU() = default;
     void _init(int size) override {
         list.clear();
         mp.clear();
@@ -126,6 +129,9 @@ int main(int argc, char* argv[]) {
         auto end_time = getsecond();
         printf("Total elapsed time %.4f sec\n", end_time - start_time);
     }
+
+    for (auto policy: policies)
+        delete policy;
 
     return EXIT_SUCCESS;
 }
