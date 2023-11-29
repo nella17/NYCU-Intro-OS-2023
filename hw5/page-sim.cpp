@@ -94,7 +94,7 @@ class Policy {
     int size, hit, miss, total;
     const char* const name;
     Policy(const char* p_name): name(p_name) {}
-    void init(size_t p_size) {
+    void init(int p_size) {
         size = p_size;
         hit = miss = total = 0;
         _init(p_size);
