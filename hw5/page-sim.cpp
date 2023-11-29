@@ -49,8 +49,18 @@ class Policy {
 
 class LFU : public Policy {
   public:
-    OrderSet<std::pair<int, int>> st{};
-    HashTable<int, int> mp{};
+    struct node {
+        int freq, seq, page;
+        node(int _f, int _s, int _p): freq(_f), seq(_s), page(_p) {}
+        bool operator<(const node& o) const {
+            if (freq != o.freq)
+                return freq < o.freq;
+            return seq < o.seq;
+        }
+    };
+    using SET = OrderSet<node>;
+    SET st{};
+    HashTable<int, node> mp{};
     LFU(): Policy("LFU") {}
     virtual ~LFU() = default;
     void _init(int size) override {
@@ -60,18 +70,20 @@ class LFU : public Policy {
     bool _access(int page) override {
         auto it = mp.find(page);
         if (it != mp.end()) {
-            st.erase({ it->second, page });
-            it->second++;
-            st.insert({ it->second, page });
+            st.erase(it->second);
+            it->second.freq++;
+            it->second.seq = total;
+            st.insert(it->second);
             return true;
         } else {
             if ((int)st.size() == size) {
                 auto jt = st.begin();
-                mp.erase(jt->second);
+                mp.erase(jt->page);
                 st.erase(jt);
             }
-            mp.emplace(page, 1);
-            st.insert({ 1, page });
+            node n(1, total, page);
+            st.insert(n);
+            mp.emplace(page, n);
             return false;
         }
     }
