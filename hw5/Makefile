@@ -2,7 +2,7 @@ CXX		?= g++
 NAME 	:= page-sim
 TARGET	?= ./${NAME}.exe
 SOURCE 	:= ${NAME}.cpp
-CFLAGS	+= -Wall -Wextra -Wshadow -Wconversion -g
+CFLAGS	+= -Wall -Wextra -Wshadow -Wconversion -g -std=c++17
 ifneq ($(shell uname),Darwin)
 CFLAGS 	+= -fsanitize=leak -fsanitize=address -fsanitize=undefined
 endif
@@ -12,8 +12,8 @@ all: build run
 
 .PHONY: run
 run: build files
-	$(TARGET) zipf.txt
 	$(TARGET) whois.txt
+	$(TARGET) zipf.txt
 
 .PHONY: build
 build: $(TARGET)
