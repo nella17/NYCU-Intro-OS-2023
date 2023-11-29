@@ -7,10 +7,11 @@
 #include <sys/stat.h>
 #include <iostream>
 #include <vector>
-#include <set>
+#include <array>
 
 #define MY_LIST
 #define MY_HASH
+#define MY_SET
 
 #ifdef MY_LIST
 template<typename Value>
@@ -147,8 +148,42 @@ template<typename Key, typename Value>
 using HashTable = std::unordered_map<Key, Value>;
 #endif
 
+#ifdef MY_SET
+template<typename Key>
+class OrderSet {
+    std::vector<Key> v;
+  public:
+    int size() const { return (int)v.size(); }
+    auto begin() { return v.begin(); }
+    void insert(Key key) {
+        auto it = std::lower_bound(v.begin(), v.end(), key);
+        v.insert(it, key);
+    }
+    void erase(Key key) {
+        auto it = std::lower_bound(v.begin(), v.end(), key);
+        v.erase(it);
+    }
+    void erase(typename std::vector<Key>::iterator it) {
+        v.erase(it);
+    }
+    void increase(Key key, Key o) {
+        auto it = std::lower_bound(v.begin(), v.end(), key);
+        if (it == v.end()) return;
+        *it += o;
+        while (it != v.end() and *it < *next(it)) {
+            std::swap(*it, *next(it));
+            it++;
+        }
+    }
+    void clear() {
+        v.clear();
+    }
+};
+#else
+#include <set>
 template<typename Key>
 using OrderSet = std::set<Key>;
+#endif
 
 double getsecond() {
     struct timeval time;
@@ -192,6 +227,10 @@ class LFU : public Policy {
                 return freq < o.freq;
             return seq < o.seq;
         }
+        void operator+=(const node& o) {
+            freq += o.freq;
+            seq = o.seq;
+        }
     };
     using SET = OrderSet<node>;
     SET st{};
@@ -206,13 +245,18 @@ class LFU : public Policy {
         auto it = mp.find(page);
         if (it != mp.end()) {
             auto& v = it->second;
+#ifdef MY_SET
+            node n{ 1, total, page };
+            st.increase(v, n);
+#else
             st.erase(v);
             v.freq++;
             v.seq = total;
             st.insert(v);
+#endif
             return true;
         } else {
-            if ((int)st.size() == size) {
+            if (st.size() == size) {
                 auto jt = st.begin();
                 mp.erase(jt->page);
                 st.erase(jt);
