@@ -1,9 +1,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <fcntl.h>
 #include <sys/time.h>
+#include <sys/mman.h>
+#include <sys/stat.h>
 #include <iostream>
-#include <fstream>
 #include <vector>
 #include <set>
 
@@ -254,6 +256,39 @@ class LRU : public Policy {
     }
 };
 
+class File {
+  public:
+    char* mp;
+    size_t size, cur;
+
+    File(const char* filename) {
+        int fd = open(filename, O_RDONLY);
+        if (fd < 0) throw ((perror("open"), -1));
+        struct stat buf;
+        if (fstat(fd, &buf) < 0) throw ((perror("fstat"), -1));
+        size = (size_t)buf.st_size;
+        cur = 0;
+        mp = (char*)mmap(NULL, size, PROT_READ, MAP_PRIVATE, fd, 0);
+        if (mp == MAP_FAILED) throw ((perror("mmap"), -1));
+        close(fd);
+    }
+    ~File() {
+        if (munmap(mp, size) < 0) throw ((perror("munmap"), -1));
+    }
+    int get() {
+        if (cur >= size) return -1;
+        int k = 0;
+        while (cur < size and !('0' <= mp[cur] and mp[cur] <= '9'))
+            cur++;
+        if (cur >= size) return -1;
+        while (cur < size and ('0' <= mp[cur] and mp[cur] <= '9')) {
+            k = k * 10 + mp[cur] - '0';
+            cur++;
+        }
+        return k;
+    }
+};
+
 int main(int argc, char* argv[]) {
     if (argc < 2)
         return EXIT_FAILURE;
@@ -269,10 +304,10 @@ int main(int argc, char* argv[]) {
         printf("Frame\tHit\t\tMiss\t\tPage fault ratio\n");
         auto start_time = getsecond();
         for (int size: { 64, 128, 256, 512 }) {
-            std::ifstream in(filename);
+            File in(filename);
             int page;
             policy->init(size);
-            while (in >> page)
+            while ((page = in.get()) != -1)
                 policy->access(page);
             printf("%d\t%d\t\t%d\t\t%.10f\n", size, policy->hit, policy->miss, policy->fault());
         }
