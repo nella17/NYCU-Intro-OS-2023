@@ -6,14 +6,81 @@
 #include <fstream>
 #include <vector>
 #include <set>
+
+#define MY_LIST
+#ifdef MY_LIST
+template<typename Value>
+class List {
+    struct node {
+        Value value;
+        node *prev = nullptr, *next = nullptr;
+    };
+    void link(node* prev, node* next) {
+        if (prev) prev->next = next;
+        if (next) next->prev = prev;
+    }
+    void unlink(node* it) {
+        link(it->prev, it->next);
+    }
+    int n;
+    node *head, *tail;
+  public:
+    using iterator = node*;
+    iterator end() const { return tail; }
+    int size() const { return n; }
+    iterator insert(iterator target, iterator it) {
+        if (n == 0) {
+            head = tail = it;
+        } else {
+            link(it, target->next);
+            link(target, it);
+        }
+        if (target == tail) tail = it;
+        n++;
+        return it;
+    }
+    iterator insert(iterator target, Value value) {
+        auto it = new node{ value };
+        return insert(target, it);
+    }
+    void move(iterator target, iterator it) {
+        if (target == it) return;
+        erase(it, false);
+        insert(target, it);
+    }
+    int front() const {
+        return head->value;
+    }
+    void pop_front() {
+        erase(head);
+    }
+    void erase(iterator it, bool del = true) {
+        if (head == it) head = head->next;
+        if (tail == it) tail = tail->prev;
+        unlink(it);
+        if (del) delete it;
+        n--;
+    }
+    void clear() {
+        while (head != nullptr) {
+            auto nxt = head->next;
+            delete head;
+            head = nxt;
+        }
+        n = 0;
+        head = tail = nullptr;
+    }
+};
+#else
 #include <list>
+template<typename Value>
+using List = std::list<Value>;
+#endif
 
 template<typename Key, typename Value>
 using HashTable = std::unordered_map<Key, Value>;
 template<typename Key>
 using OrderSet = std::set<Key>;
-template<typename Value>
-using List = std::list<Value>;
 
 double getsecond() {
     struct timeval time;
@@ -102,8 +169,12 @@ class LRU : public Policy {
     bool _access(int page) override {
         auto it = mp.find(page);
         if (it != mp.end()) {
+#ifdef MY_LIST
+            list.move(list.end(), it->second);
+#else
             list.erase(it->second);
             it->second = list.insert(list.end(), page);
+#endif
             return true;
         } else {
             if ((int)list.size() == size) {
