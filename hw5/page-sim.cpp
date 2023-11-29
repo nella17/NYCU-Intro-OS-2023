@@ -5,30 +5,13 @@
 #include <iostream>
 #include <fstream>
 #include <vector>
-#include <unordered_map>
-#include <map>
+#include <set>
 #include <list>
-#include <chrono>
-
-struct custom_hash {
-    static uint64_t splitmix64(uint64_t x) {
-        // http://xorshift.di.unimi.it/splitmix64.c
-        x += 0x9e3779b97f4a7c15;
-        x = (x ^ (x >> 30)) * 0xbf58476d1ce4e5b9;
-        x = (x ^ (x >> 27)) * 0x94d049bb133111eb;
-        return x ^ (x >> 31);
-    }
-
-    size_t operator()(uint64_t x) const {
-        static const uint64_t FIXED_RANDOM = (uint64_t)std::chrono::steady_clock::now().time_since_epoch().count();
-        return splitmix64(x + FIXED_RANDOM);
-    }
-};
 
 template<typename Key, typename Value>
-using HashTable = std::unordered_map<Key, Value, custom_hash>;
-template<typename Key, typename Value>
-using OrderMap = std::map<Key, Value>;
+using HashTable = std::unordered_map<Key, Value>;
+template<typename Key>
+using OrderSet = std::set<Key>;
 template<typename Value>
 using List = std::list<Value>;
 
@@ -66,13 +49,31 @@ class Policy {
 
 class LFU : public Policy {
   public:
+    OrderSet<std::pair<int, int>> st{};
+    HashTable<int, int> mp{};
     LFU(): Policy("LFU") {}
     virtual ~LFU() = default;
     void _init(int size) override {
-
+        st.clear();
+        mp.clear();
     }
     bool _access(int page) override {
-        return false;
+        auto it = mp.find(page);
+        if (it != mp.end()) {
+            st.erase({ it->second, page });
+            it->second++;
+            st.insert({ it->second, page });
+            return true;
+        } else {
+            if ((int)st.size() == size) {
+                auto jt = st.begin();
+                mp.erase(jt->second);
+                st.erase(jt);
+            }
+            mp.emplace(page, 1);
+            st.insert({ 1, page });
+            return false;
+        }
     }
 };
 
@@ -85,7 +86,6 @@ class LRU : public Policy {
     void _init(int size) override {
         list.clear();
         mp.clear();
-        mp.reserve(8192);
     }
     bool _access(int page) override {
         auto it = mp.find(page);
