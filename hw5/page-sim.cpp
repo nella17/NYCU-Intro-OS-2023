@@ -8,6 +8,8 @@
 #include <set>
 
 #define MY_LIST
+#define MY_HASH
+
 #ifdef MY_LIST
 template<typename Value>
 class List {
@@ -25,10 +27,25 @@ class List {
     int n;
     node *head, *tail;
   public:
-    using iterator = node*;
+    struct iterator {
+        node* ptr;
+        iterator(node* p): ptr(p) {}
+        Value& operator*() { return ptr->value; }
+        Value* operator->() { return &ptr->value; }
+        bool operator==(iterator it) const { return ptr == it.ptr; }
+        bool operator!=(iterator it) const { return ptr != it.ptr; }
+        bool operator!=(std::nullptr_t null) const { return ptr != null; }
+        iterator& operator++() {
+            ptr = ptr->next;
+            return *this;
+        }
+    };
+    iterator begin() const { return head; }
     iterator end() const { return tail; }
     int size() const { return n; }
-    iterator insert(iterator target, iterator it) {
+    bool empty() const { return n == 0; }
+    iterator insert(iterator p_target, iterator p_it) {
+        auto target = p_target.ptr, it = p_it.ptr;
         if (n == 0) {
             head = tail = it;
         } else {
@@ -43,6 +60,14 @@ class List {
         auto it = new node{ value };
         return insert(target, it);
     }
+    iterator insert_begin(Value value) {
+        auto it = new node{ value };
+        return insert(begin(), it);
+    }
+    iterator insert_end(Value value) {
+        auto it = new node{ value };
+        return insert(end(), it);
+    }
     void move(iterator target, iterator it) {
         if (target == it) return;
         erase(it, false);
@@ -54,7 +79,8 @@ class List {
     void pop_front() {
         erase(head);
     }
-    void erase(iterator it, bool del = true) {
+    void erase(iterator p_it, bool del = true) {
+        auto it = p_it.ptr;
         if (head == it) head = head->next;
         if (tail == it) tail = tail->prev;
         unlink(it);
@@ -77,8 +103,48 @@ template<typename Value>
 using List = std::list<Value>;
 #endif
 
+#ifdef MY_HASH
+template<typename Key, typename Value>
+class HashTable {
+    static constexpr size_t SIZE = 1024;
+    using KV = std::pair<Key, Value>;
+    using L = List<KV>;
+    std::array<L, SIZE> ary;
+    size_t hash(Key key) {
+        return (size_t)key % SIZE;
+    }
+  public:
+    using iterator = typename L::iterator;
+    iterator end() const { return nullptr; }
+    iterator find(Key key) {
+        auto h = hash(key);
+        for (auto it = ary[h].begin(); it != nullptr; ++it) {
+            if (it->first == key)
+                return it;
+        }
+        return nullptr;
+    }
+    void emplace(Key key, Value value) {
+        auto h = hash(key);
+        ary[h].insert_begin(KV{ key, value });
+    }
+    void erase(Key key) {
+        auto it = find(key);
+        if (it == nullptr) return;
+        auto h = hash(key);
+        ary[h].erase(it);
+    }
+    void clear() {
+        for (size_t i = 0; i < SIZE; i++)
+            ary[i].clear();
+    }
+};
+#else
+#include <unordered_map>
 template<typename Key, typename Value>
 using HashTable = std::unordered_map<Key, Value>;
+#endif
+
 template<typename Key>
 using OrderSet = std::set<Key>;
 
@@ -137,10 +203,11 @@ class LFU : public Policy {
     bool _access(int page) override {
         auto it = mp.find(page);
         if (it != mp.end()) {
-            st.erase(it->second);
-            it->second.freq++;
-            it->second.seq = total;
-            st.insert(it->second);
+            auto& v = it->second;
+            st.erase(v);
+            v.freq++;
+            v.seq = total;
+            st.insert(v);
             return true;
         } else {
             if ((int)st.size() == size) {
