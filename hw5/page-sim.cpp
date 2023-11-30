@@ -151,29 +151,39 @@ using HashTable = std::unordered_map<Key, Value>;
 #ifdef MY_SET
 template<typename Key>
 class OrderSet {
+  public:
+    using iterator = typename std::vector<Key>::iterator;
+  private:
     std::vector<Key> v;
+    void fix(iterator it) {
+        for (auto jt = it; jt != v.begin() and *jt < *prev(jt); jt--)
+            std::swap(*prev(jt), *jt);
+        for (auto jt = it; next(jt) != v.end() and *next(jt) < *jt; jt++)
+            std::swap(*jt, *next(jt));
+    }
   public:
     int size() const { return (int)v.size(); }
-    auto begin() { return v.begin(); }
+    iterator begin() { return v.begin(); }
     void insert(Key key) {
         auto it = std::lower_bound(v.begin(), v.end(), key);
         v.insert(it, key);
+    }
+    void replace(iterator it, Key key) {
+        *it = key;
+        fix(it);
     }
     void erase(Key key) {
         auto it = std::lower_bound(v.begin(), v.end(), key);
         v.erase(it);
     }
-    void erase(typename std::vector<Key>::iterator it) {
+    void erase(iterator it) {
         v.erase(it);
     }
     void increase(Key key, Key o) {
         auto it = std::lower_bound(v.begin(), v.end(), key);
-        if (it == v.end()) return;
+        if (it == v.end() or *it != key) return;
         *it += o;
-        while (it != v.end() and *it < *next(it)) {
-            std::swap(*it, *next(it));
-            it++;
-        }
+        fix(it);
     }
     void clear() {
         v.clear();
@@ -227,6 +237,9 @@ class LFU : public Policy {
                 return freq < o.freq;
             return seq < o.seq;
         }
+        bool operator!=(const node& o) const {
+            return page != o.page;
+        }
         void operator+=(const node& o) {
             freq += o.freq;
             seq = o.seq;
@@ -245,29 +258,38 @@ class LFU : public Policy {
         auto it = mp.find(page);
         if (it != mp.end()) {
             auto& v = it->second;
-#ifdef MY_SET
             node n{ 1, total, page };
+#ifdef MY_SET
             st.increase(v, n);
+            v += n;
 #else
             st.erase(v);
-            v.freq++;
-            v.seq = total;
+            v += n;
             st.insert(v);
 #endif
             return true;
         } else {
+            node n(1, total, page);
             if (st.size() == size) {
                 auto jt = st.begin();
                 mp.erase(jt->page);
+#ifdef MY_SET
+                st.replace(jt, n);
+#else
                 st.erase(jt);
+                st.insert(n);
+#endif
+            } else {
+                st.insert(n);
             }
-            node n(1, total, page);
-            st.insert(n);
             mp.emplace(page, n);
             return false;
         }
     }
 };
+std::ostream& operator<<(std::ostream& os, LFU::node n) {
+    return os << n.freq << ' ' << n.seq << ' ' << n.page;
+}
 
 class LRU : public Policy {
   public:
