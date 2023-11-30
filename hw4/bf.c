@@ -8,7 +8,7 @@
 #define PRE_ALLOC_SIZE 20000
 #define SIZE_ALIGN 32
 #define HEADER_SIZE 32
-#define MIN_DATA_SIZE 32
+#define MIN_DATA_SIZE 0
 
 // #define DEBUG
 #define BUF_SIZE 1024
