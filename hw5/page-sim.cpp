@@ -26,6 +26,7 @@ class List {
     }
     void unlink(node* it) {
         link(it->prev, it->next);
+        it->prev = it->next = nullptr;
     }
     int n;
     node *head, *tail;
@@ -44,7 +45,7 @@ class List {
         }
     };
     iterator begin() const { return head; }
-    iterator end() const { return tail; }
+    iterator end() const { return nullptr; }
     int size() const { return n; }
     bool empty() const { return n == 0; }
     iterator insert(iterator p_target, iterator p_it) {
@@ -52,24 +53,21 @@ class List {
         if (n == 0) {
             head = tail = it;
         } else {
-            link(it, target->next);
-            link(target, it);
+            if (target == nullptr) {
+                link(tail, it);
+                tail = it;
+            } else {
+                link(target->prev, it);
+                link(it, target);
+                if (target == head) head = it;
+            }
         }
-        if (target == tail) tail = it;
         n++;
         return it;
     }
     iterator insert(iterator target, Value value) {
         auto it = new node{ value };
         return insert(target, it);
-    }
-    iterator insert_begin(Value value) {
-        auto it = new node{ value };
-        return insert(begin(), it);
-    }
-    iterator insert_end(Value value) {
-        auto it = new node{ value };
-        return insert(end(), it);
     }
     void move(iterator target, iterator it) {
         if (target == it) return;
@@ -129,7 +127,7 @@ class HashTable {
     }
     void emplace(Key key, Value value) {
         auto h = hash(key);
-        ary[h].insert_begin(KV{ key, value });
+        ary[h].insert(ary[h].begin(), KV{ key, value });
     }
     void erase(Key key) {
         auto it = find(key);
@@ -365,7 +363,10 @@ int main(int argc, char* argv[]) {
         new LRU
     };
 
+    bool first = true;
     for (auto policy: policies) {
+        if (first) first = false;
+        else printf("\n");
         printf("%s policy:\n", policy->name);
         printf("Frame\tHit\t\tMiss\t\tPage fault ratio\n");
         auto start_time = getsecond();
