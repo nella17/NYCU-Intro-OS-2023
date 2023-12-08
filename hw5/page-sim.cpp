@@ -31,6 +31,8 @@ class List {
     int n;
     node *head, *tail;
   public:
+    List(): n(0), head(nullptr), tail(nullptr) {}
+    ~List() { clear(); }
     struct iterator {
         node* ptr;
         iterator(node* p = nullptr): ptr(p) {}
@@ -117,6 +119,8 @@ class HashTable {
     }
     size_t h;
   public:
+    HashTable(): h(-1) {}
+    ~HashTable() { clear(); }
     using iterator = typename L::iterator;
     using const_iterator = typename L::const_iterator;
     const_iterator end() const { return ary[h].end(); }
@@ -195,7 +199,7 @@ class LFU : public Policy {
     HashTable<int, Lit> mp{};
     LFU(): Policy("LFU") {}
     virtual ~LFU() = default;
-    void _init(int size) override {
+    void _init(int p_size) override {
         list.clear();
         mp.clear();
     }
@@ -245,7 +249,7 @@ class LRU : public Policy {
     HashTable<int, List<int>::iterator> mp{};
     LRU(): Policy("LRU") {}
     virtual ~LRU() = default;
-    void _init(int size) override {
+    void _init(int p_size) override {
         list.clear();
         mp.clear();
     }
