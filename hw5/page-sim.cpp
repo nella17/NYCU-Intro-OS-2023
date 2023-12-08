@@ -11,7 +11,6 @@
 
 #define MY_LIST
 #define MY_HASH
-#define MY_SET
 
 #ifdef MY_LIST
 template<typename Value>
@@ -33,7 +32,7 @@ class List {
   public:
     struct iterator {
         node* ptr;
-        iterator(node* p): ptr(p) {}
+        iterator(node* p = nullptr): ptr(p) {}
         Value& operator*() { return ptr->value; }
         Value* operator->() { return &ptr->value; }
         bool operator==(iterator it) const { return ptr == it.ptr; }
@@ -44,6 +43,7 @@ class List {
             return *this;
         }
     };
+    using const_iterator = iterator;
     iterator begin() const { return head; }
     iterator end() const { return nullptr; }
     int size() const { return n; }
@@ -114,25 +114,26 @@ class HashTable {
     size_t hash(Key key) {
         return (size_t)key % SIZE;
     }
+    size_t h;
   public:
     using iterator = typename L::iterator;
-    iterator end() const { return nullptr; }
+    using const_iterator = typename L::const_iterator;
+    const_iterator end() const { return ary[h].end(); }
     iterator find(Key key) {
-        auto h = hash(key);
-        for (auto it = ary[h].begin(); it != nullptr; ++it) {
+        h = hash(key);
+        for (auto it = ary[h].begin(); it != ary[h].end(); ++it) {
             if (it->first == key)
                 return it;
         }
-        return nullptr;
+        return ary[h].end();
     }
     void emplace(Key key, Value value) {
-        auto h = hash(key);
+        h = hash(key);
         ary[h].insert(ary[h].begin(), KV{ key, value });
     }
     void erase(Key key) {
         auto it = find(key);
-        if (it == nullptr) return;
-        auto h = hash(key);
+        if (it == ary[h].end()) return;
         ary[h].erase(it);
     }
     void clear() {
@@ -144,53 +145,6 @@ class HashTable {
 #include <unordered_map>
 template<typename Key, typename Value>
 using HashTable = std::unordered_map<Key, Value>;
-#endif
-
-#ifdef MY_SET
-template<typename Key>
-class OrderSet {
-  public:
-    using iterator = typename std::vector<Key>::iterator;
-  private:
-    std::vector<Key> v;
-    void fix(iterator it) {
-        for (auto jt = it; jt != v.begin() and *jt < *prev(jt); jt--)
-            std::swap(*prev(jt), *jt);
-        for (auto jt = it; next(jt) != v.end() and *next(jt) < *jt; jt++)
-            std::swap(*jt, *next(jt));
-    }
-  public:
-    int size() const { return (int)v.size(); }
-    iterator begin() { return v.begin(); }
-    void insert(Key key) {
-        auto it = std::lower_bound(v.begin(), v.end(), key);
-        v.insert(it, key);
-    }
-    void replace(iterator it, Key key) {
-        *it = key;
-        fix(it);
-    }
-    void erase(Key key) {
-        auto it = std::lower_bound(v.begin(), v.end(), key);
-        v.erase(it);
-    }
-    void erase(iterator it) {
-        v.erase(it);
-    }
-    void increase(Key key, Key o) {
-        auto it = std::lower_bound(v.begin(), v.end(), key);
-        if (it == v.end() or *it != key) return;
-        *it += o;
-        fix(it);
-    }
-    void clear() {
-        v.clear();
-    }
-};
-#else
-#include <set>
-template<typename Key>
-using OrderSet = std::set<Key>;
 #endif
 
 double getsecond() {
@@ -243,44 +197,47 @@ class LFU : public Policy {
             seq = o.seq;
         }
     };
-    using SET = OrderSet<node>;
-    SET st{};
-    HashTable<int, node> mp{};
+    using L = List<node>;
+    using Lit = L::iterator;
+    L list;
+    HashTable<int, Lit> mp{};
     LFU(): Policy("LFU") {}
     virtual ~LFU() = default;
     void _init(int size) override {
-        st.clear();
+        list.clear();
         mp.clear();
+    }
+    Lit _find_pos(Lit kt, node n) {
+        while (kt != list.end() and *kt < n)
+            ++kt;
+        return kt;
     }
     bool _access(int page) override {
         auto it = mp.find(page);
         if (it != mp.end()) {
-            auto& v = it->second;
-            node n{ 1, total, page };
-#ifdef MY_SET
-            st.increase(v, n);
-            v += n;
+            auto& jt = it->second;
+            auto freq = jt->freq;
+            node o = *jt;
+            o += node{ 1, total, page };
+            auto kt = _find_pos(jt, o);
+#ifdef MY_LIST
+            list.erase(jt, false);
+            list.insert(kt, jt);
 #else
-            st.erase(v);
-            v += n;
-            st.insert(v);
+            list.erase(jt);
+            it->second = list.insert(kt, o);
 #endif
             return true;
         } else {
             node n(1, total, page);
-            if (st.size() == size) {
-                auto jt = st.begin();
+            auto jt = list.begin();
+            if (list.size() == size) {
                 mp.erase(jt->page);
-#ifdef MY_SET
-                st.replace(jt, n);
-#else
-                st.erase(jt);
-                st.insert(n);
-#endif
-            } else {
-                st.insert(n);
+                list.erase(jt);
             }
-            mp.emplace(page, n);
+            auto kt = _find_pos(list.begin(), n);
+            jt = list.insert(kt, n);
+            mp.emplace(page, jt);
             return false;
         }
     }
