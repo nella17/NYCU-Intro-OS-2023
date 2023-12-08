@@ -182,19 +182,10 @@ class Policy {
 class LFU : public Policy {
   public:
     struct node {
-        int freq, seq, page;
-        node(int _f, int _s, int _p): freq(_f), seq(_s), page(_p) {}
-        bool operator<(const node& o) const {
-            if (freq != o.freq)
-                return freq < o.freq;
-            return seq < o.seq;
-        }
+        int freq, page;
+        node(int _f, int _p): freq(_f), page(_p) {}
         bool operator!=(const node& o) const {
             return page != o.page;
-        }
-        void operator+=(const node& o) {
-            freq += o.freq;
-            seq = o.seq;
         }
     };
     using L = List<node>;
@@ -207,8 +198,8 @@ class LFU : public Policy {
         list.clear();
         mp.clear();
     }
-    Lit _find_pos(Lit kt, node n) {
-        while (kt != list.end() and *kt < n)
+    Lit _find_pos(Lit kt, int freq) {
+        while (kt != list.end() and kt->freq <= freq)
             ++kt;
         return kt;
     }
@@ -217,25 +208,26 @@ class LFU : public Policy {
         if (it != mp.end()) {
             auto& jt = it->second;
             auto freq = jt->freq;
-            node o = *jt;
-            o += node{ 1, total, page };
-            auto kt = _find_pos(jt, o);
+            auto kt = _find_pos(jt, freq+1);
 #ifdef MY_LIST
             list.erase(jt, false);
+            jt->freq++;
             list.insert(kt, jt);
 #else
+            node o = *jt;
+            o.freq++;
             list.erase(jt);
             it->second = list.insert(kt, o);
 #endif
             return true;
         } else {
-            node n(1, total, page);
+            node n(1, page);
             auto jt = list.begin();
             if (list.size() == size) {
                 mp.erase(jt->page);
                 list.erase(jt);
             }
-            auto kt = _find_pos(list.begin(), n);
+            auto kt = _find_pos(list.begin(), 1);
             jt = list.insert(kt, n);
             mp.emplace(page, jt);
             return false;
@@ -243,7 +235,7 @@ class LFU : public Policy {
     }
 };
 std::ostream& operator<<(std::ostream& os, LFU::node n) {
-    return os << n.freq << ' ' << n.seq << ' ' << n.page;
+    return os << n.freq << ' ' << n.page;
 }
 
 class LRU : public Policy {
