@@ -112,7 +112,7 @@ class HashTable {
     using L = List<KV>;
     std::array<L, SIZE> ary;
     size_t hash(Key key) {
-        return (size_t)key % SIZE;
+        return (size_t)key * 3 % SIZE;
     }
     size_t h;
   public:
