@@ -31,7 +31,7 @@ testdir:
 build: $(TARGET)
 
 $(TARGET): $(SOURCE)
-	$(CXX) $(CPPFLAGS) $(LDFLAGS) $^ -o $@
+	$(CXX) $^ -o $@ $(CPPFLAGS) $(LDFLAGS)
 
 .PHONY: clean
 clean:
