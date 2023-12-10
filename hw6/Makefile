@@ -12,20 +12,21 @@ TESTDIR ?= test
 ANSDIR 	?= answer
 
 .PHONY: all
-all: build run
+all: build test
 
 .PHONY: run
 run: build testdir
 	$(TARGET) ./test
 
+.PHONY: test
+test: build
+	./demo.sh $(TARGET)
+
 .PHONY: testdir
 testdir:
-	diff -rq $(TESTDIR) $(ANSDIR) >/dev/null || \
-		( \
-			rm -fr $(TESTDIR) && \
-			mkdir $(TESTDIR) && \
-			tar -xf $(TESTCASE) --directory=$(TESTDIR) \
-		)
+	rm -fr $(TESTDIR) && \
+	mkdir $(TESTDIR) && \
+	tar -xf $(TESTCASE) --directory=$(TESTDIR) \
 
 .PHONY: build
 build: $(TARGET)
