@@ -47,7 +47,7 @@ fi
 
 
 # Compare hard link count
-diff -w $HARD_LINK_CNT <(find $EXTRACT_DIR -type f -exec ls -l {} + | sort -d | awk '{print $2, $NF}') > /dev/null
+diff -w <(sort -k 1,2 $HARD_LINK_CNT) <(find $EXTRACT_DIR -type f -exec ls -l {} + | awk '{print $2, $NF}' | sort -k 1,2) > /dev/null
 
 if [ $? -eq 0 ]; then
     echo -e "HardLink:\t[0;32mCorrect[m"
